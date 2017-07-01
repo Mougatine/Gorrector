@@ -1,5 +1,10 @@
 package trie
 
+import (
+	"encoding/gob"
+	"os"
+)
+
 type Trie struct {
 	isWord   bool
 	children map[string]*Trie
@@ -56,4 +61,26 @@ func (t *Trie) CompactTrie() {
 	for child := range t.children {
 		t.children[child].CompactTrie()
 	}
+}
+
+func SaveTrie(path string, t *Trie) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	return gob.NewEncoder(file).Encode(t)
+}
+
+func LoadTrie(path string) (*Trie, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	decodedTrie := &Trie{}
+	err = gob.NewDecoder(file).Decode(decodedTrie)
+	return decodedTrie, err
 }
