@@ -1,43 +1,54 @@
 package trie
 
 import (
+	"bufio"
 	"encoding/gob"
 	"os"
+	"strconv"
+	"strings"
 )
 
 type Trie struct {
-	isWord   bool
-	children map[string]*Trie
-	char     string
+	IsWord    bool
+	Children  map[string]*Trie
+	Char      string
+	Frequency int
+}
+
+type Word struct {
+	content   string
+	Frequency int
 }
 
 func CreateRootTrie() *Trie {
-	return &Trie{false, make(map[string]*Trie), ""}
+	return &Trie{false, make(map[string]*Trie), "", 0}
 }
 
-func (t *Trie) AddWord(letters string) {
-	char := string(letters[0])
+func (t *Trie) AddWord(letters string, frequency int) {
+	char := string(letters[0]) // Bug with root
+
+	if _, ok := t.Children[char]; !ok {
+		// Creates new child.
+		t.Children[char] = &Trie{false, make(map[string]*Trie), char, 0}
+	}
 
 	if len(letters) == 1 {
-		// End of recursion.
-		t.isWord = true
-	} else if _, ok := t.children[char]; ok {
-		// Child path already exists.
-		t.children[char].AddWord(letters[1:])
+		t.Children[char].IsWord = true
+		t.Children[char].Frequency = frequency
 	} else {
-		t.children[char] = &Trie{false, make(map[string]*Trie), char}
+		t.Children[char].AddWord(letters[1:], frequency)
 	}
 }
 
 func (t *Trie) FetchAllWords(prefix string) []string {
 	words := make([]string, 1)
-	current := prefix + t.char
+	current := prefix + t.Char
 
-	if t.isWord {
+	if t.IsWord {
 		words = append(words, current)
 	}
 
-	for _, child := range t.children {
+	for _, child := range t.Children {
 		words = append(words, child.FetchAllWords(current)...)
 	}
 
@@ -45,21 +56,21 @@ func (t *Trie) FetchAllWords(prefix string) []string {
 }
 
 func (t *Trie) CompactTrie() {
-	if len(t.children) == 1 {
-		for child := range t.children {
+	if len(t.Children) == 1 {
+		for child := range t.Children {
 			// Only looping once: one key, aka one child.
-			if len(t.children[child].children) == 1 {
-				for grandChild := range t.children[child].children {
+			if len(t.Children[child].Children) == 1 {
+				for grandChild := range t.Children[child].Children {
 					// Again only looping once.
-					t.char = t.char + t.children[child].char
-					t.children = map[string]*Trie{t.char: t.children[child].children[grandChild]}
+					t.Char = t.Char + t.Children[child].Char
+					t.Children = map[string]*Trie{t.Char: t.Children[child].Children[grandChild]}
 				}
 			}
 		}
 	}
 
-	for child := range t.children {
-		t.children[child].CompactTrie()
+	for child := range t.Children {
+		t.Children[child].CompactTrie()
 	}
 }
 
@@ -83,4 +94,26 @@ func LoadTrie(path string) (*Trie, error) {
 	decodedTrie := &Trie{}
 	err = gob.NewDecoder(file).Decode(decodedTrie)
 	return decodedTrie, err
+}
+
+func CreateTrie(path string) (*Trie, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	root := &Trie{false, make(map[string]*Trie), "", 0}
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.Fields(scanner.Text())
+		freq, err := strconv.Atoi(line[1])
+		if err != nil {
+			continue
+		}
+		root.AddWord(line[0], freq)
+	}
+
+	return root, nil
 }
