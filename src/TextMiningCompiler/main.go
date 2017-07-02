@@ -9,10 +9,6 @@ import (
 	trie "../trie"
 )
 
-type toto struct {
-	t bool
-}
-
 func main() {
 	flag.Parse()
 	wordsPath, dictPath := flag.Arg(0), flag.Arg(1)
