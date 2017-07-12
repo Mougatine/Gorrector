@@ -13,7 +13,7 @@ import (
 func main() {
 	flag.Parse()
 	if len(flag.Args()) != 1 {
-		fmt.Println("Usage: ./TextMiningApp /path/to/compiled/dict.bin\n Abort trap: 6")
+		fmt.Println("Usage: ./TextMiningApp /path/to/compiled/dict.bin")
 		os.Exit(134)
 	}
 
