@@ -12,9 +12,8 @@ import (
 func main() {
 	flag.Parse()
 	if len(flag.Args()) != 2 {
-		fmt.Fprintln(os.Stderr,
-			"Provide the compiler with words.txt path and dict path.")
-		os.Exit(1)
+		fmt.Println("Usage: ./TextMiningCompiler /path/to/word/freq.txt /path/to/output/dict.bin")
+		os.Exit(134)
 	}
 	wordsPath, dictPath := flag.Arg(0), flag.Arg(1)
 

@@ -13,9 +13,8 @@ import (
 func main() {
 	flag.Parse()
 	if len(flag.Args()) != 1 {
-		fmt.Fprintln(os.Stderr,
-			"Provide the app with the compiled dict.")
-		os.Exit(1)
+		fmt.Println("Usage: ./TextMiningApp /path/to/compiled/dict.bin\n Abort trap: 6")
+		os.Exit(134)
 	}
 
 	dictPath := flag.Arg(0)
