@@ -220,3 +220,59 @@ func CreateTrie(path string) (*Trie, error) {
 
 	return root, nil
 }
+
+func DLDistance(str1 string, str2 string) int {
+	len1, len2 := len(str1), len(str2)
+	inf := len1 + len2
+	d := make([][]int, len1+2)
+	lastRow := make(map[string]int)
+
+	for i := range d {
+		d[i] = make([]int, len2+2)
+	}
+
+	// Fill array
+	for i := 0; i < len1+2; i++ {
+		d[i][0] = inf
+		d[i][1] = i - 1
+	}
+
+	for j := 0; j < len2+2; j++ {
+		d[0][j] = inf
+		d[1][j] = j - 1
+	}
+
+	for row := 2; row < len1+2; row++ {
+
+		// Current character in a
+		chA := str1[row-2]
+		lastMatchCol := 1
+
+		for col := 2; col < len2+2; col++ {
+			chB := str2[col-2]
+			lastMatchRow := lastRow[string(chB)]
+			if lastMatchRow == 0 {
+				lastMatchRow = 1
+			}
+			var cost = 0
+			if chA != chB {
+				cost = 1
+			}
+			substitution := d[row-1][col-1] + cost
+			addition := d[row][col-1] + 1
+			deletion := d[row-1][col] + 1
+			transposition := d[lastMatchRow-1][lastMatchCol-1] + (row - lastMatchRow - 1) + 1 + (col - lastMatchCol - 1)
+			minDist := sliceMin([]int{substitution, addition, deletion, transposition})
+			d[row][col] = minDist
+
+			if cost == 0 {
+				lastMatchCol = col
+			}
+		}
+
+		lastRow[string(chA)] = row
+	}
+
+	return d[len1][len2]
+
+}
