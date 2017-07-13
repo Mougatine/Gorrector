@@ -3,6 +3,8 @@ package trie
 import (
 	"bufio"
 	"encoding/gob"
+	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -16,8 +18,109 @@ type Trie struct {
 }
 
 type Word struct {
-	content   string
+	Content   string
 	Frequency int
+	Distance  int
+}
+
+func (t *Trie) SearchCloseWords(word string, distance int) []Word {
+	a := make([]Word, 1)
+
+	fmt.Println("looking...", word, distance)
+	for _, child := range t.Children {
+		a = append(a, searchCloseWords(child, word, distance, 0, "")...)
+	}
+	fmt.Println(a)
+	os.Exit(3)
+	return a
+}
+
+func searchCloseWords(node *Trie, word string, maxDist int, curDist int, curr string) []Word {
+	if word[0] != node.Char {
+		curDist++
+	}
+	word = word[1:]
+
+	if curDist > maxDist {
+		return []Word{}
+	}
+
+	mdist := -1
+	ans := make([]Word, 1)
+	curr += node.Char
+
+	if len(word)+curDist < maxDist
+
+	if len(node.Children) == 0 {
+		curDist += len(word)
+	}
+
+	if curDist <= maxDist && node.IsWord {
+		ans = append(ans, Word{curr, node.Frequency, curDist})
+	}
+
+	if curDist+1 < maxDist && len(word) > 0 {
+		suppression := searchCloseWords(node, word[1:], curDist+1, maxDist, curr)
+		ans := append(ans, suppression...)
+
+		for _, child := range node.Children {
+			if len(word) > 0 && child.Char == string(word[0]) {
+				mdist = 0
+			} else {
+				mdist = 1
+			}
+
+			substitution := searchCloseWords(child, word[1:], curDist+mdist, maxDist, curr)
+			insertion := searchCloseWords(child, word, curDist+1, maxDist, curr)
+			ans = append(ans, substitution...)
+			ans = append(ans, insertion...)
+		}
+	}
+
+	return ans
+}
+
+/*
+Not working, from utard'slides.
+*/
+func computeDistance(node *Trie, word string, curDistance int, maxDistance int) int {
+	if curDistance > maxDistance {
+		return curDistance
+	}
+	res, mdist := -1, -1
+
+	if len(node.Children) == 0 {
+		res = len(word)
+	}
+	if curDistance+1 < maxDistance {
+		suppression := computeDistance(node, word[1:], curDistance+1, maxDistance)
+		res = myMin(res, suppression)
+	}
+
+	for _, child := range node.Children {
+		if len(word) > 0 && child.Char == string(word[0]) {
+			mdist = 0
+		} else {
+			mdist = 1
+		}
+
+		substitution := computeDistance(child, word[1:], curDistance+mdist, maxDistance)
+		insertion := computeDistance(child, word, curDistance+1, maxDistance)
+		res = myMin(res, substitution, insertion)
+	}
+
+	return res
+}
+
+func myMin(args ...int) int {
+	v := math.MaxInt64
+	for _, arg := range args {
+		if v > arg {
+			v = arg
+		}
+	}
+
+	return v
 }
 
 func CreateRootTrie() *Trie {

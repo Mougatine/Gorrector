@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 
+	"strconv"
+
 	trie "../trie"
 )
 
@@ -28,7 +30,14 @@ func main() {
 	for scanner.Scan() {
 		fields := strings.Fields(scanner.Text())
 		distance, word := fields[1], fields[2]
-		answers := dict.SearchCloseWords(word, distance)
-		fmt.Println(prettyPrint(answers))
+
+		dist, err := strconv.Atoi(distance)
+		if err != nil {
+			continue
+		}
+
+		answers := dict.SearchCloseWords(word, dist)
+		fmt.Println(answers)
+		//fmt.Println(prettyPrint(answers))
 	}
 }
