@@ -72,7 +72,6 @@ func (t *Trie) SearchCloseWords(word string, distance int) []Word {
 	wordList := []Word{}
 	mdist := -1
 
-	fmt.Println("looking...", word, distance)
 	for _, child := range t.Children {
 		if 1 < distance {
 			computeDistance(child, word, 1, distance, "", &wordList, "del")
@@ -163,7 +162,7 @@ func PrettyPrint(words []Word) {
 		}
 	}
 
-	fmt.Print("]")
+	fmt.Print("]\n")
 }
 
 // AddWord adds a word to the trie by creating a new node containing
