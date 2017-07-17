@@ -89,54 +89,8 @@ func (t *Trie) SearchCloseWords(word string, distance int) []Word {
 	return wordList
 }
 
-/*func searchCloseWords(node *Trie, word string, maxDist int, curDist int, curr string) []Word {
-	if word[0] != node.Char {
-		curDist++
-	}
-	word = word[1:]
-
-	if curDist > maxDist {
-		return []Word{}
-	}
-
-	mdist := -1
-	ans := make([]Word, 1)
-	curr += node.Char
-
-	if len(word)+curDist < maxDist
-
-	if len(node.Children) == 0 {
-		curDist += len(word)
-	}
-
-	if curDist <= maxDist && node.IsWord {
-		ans = append(ans, Word{curr, node.Frequency, curDist})
-	}
-
-	if curDist+1 < maxDist && len(word) > 0 {
-		suppression := searchCloseWords(node, word[1:], curDist+1, maxDist, curr)
-		ans := append(ans, suppression...)
-
-		for _, child := range node.Children {
-			if len(word) > 0 && child.Char == string(word[0]) {
-				mdist = 0
-			} else {
-				mdist = 1
-			}
-
-			substitution := searchCloseWords(child, word[1:], curDist+mdist, maxDist, curr)
-			insertion := searchCloseWords(child, word, curDist+1, maxDist, curr)
-			ans = append(ans, substitution...)
-			ans = append(ans, insertion...)
-		}
-	}
-
-	return ans
-}*/
-
-/*
-Not working, from utard'slides.
-*/
+// computeDistance calculates the distance from the query word to the word
+// being constructed while visiting the trie
 func computeDistance(node *Trie, word string, curDistance int, maxDistance int,
 	currWord string, wordList *[]Word, step string) int {
 
@@ -152,7 +106,7 @@ func computeDistance(node *Trie, word string, curDistance int, maxDistance int,
 		res = len(word)
 	}
 
-	if curDistance+1 <= maxDistance {
+	if curDistance+1 < maxDistance {
 		wordVal := word
 		if len(word) > 0 {
 			wordVal = word[1:]
@@ -164,9 +118,7 @@ func computeDistance(node *Trie, word string, curDistance int, maxDistance int,
 
 	for _, child := range node.Children {
 		//fmt.Println("Word value " + word)
-		//if len(word) > 0 {
-		//	fmt.Println("Child val: " + child.Char + " word val: " + string(word[0]))
-		//	}
+		//fmt.Println("Child val: " + child.Char)
 
 		if len(word) > 0 && child.Char == string(word[0]) {
 			mdist = 0
