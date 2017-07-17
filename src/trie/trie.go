@@ -39,7 +39,7 @@ func (ans Answer) Swap(i, j int) {
 
 // Less implements the Less() method of the sort interface
 // The comparison if based, first, on the distance (growing)
-// then on the frequency (descending) and on the lexicographic order
+// then on the frequency (descending) and finally on the lexicographic order
 func (ans Answer) Less(i, j int) bool {
 	left, right := ans[i], ans[j]
 
@@ -126,11 +126,13 @@ func computeDistance(node *Trie, word string, curDistance int, maxDistance int,
 			mdist = 1
 		}
 
+		// Prevents useless recursive calls
 		if len(word) > 0 && curDistance+mdist <= maxDistance {
 			substitution = computeDistance(child, word[1:], curDistance+mdist, maxDistance,
 				currWord, wordList, "sub")
 		}
 
+		// Prevents useless recursive calls
 		if curDistance+1 <= maxDistance {
 			insertion = computeDistance(child, word, curDistance+1, maxDistance,
 				currWord, wordList, "insert")
@@ -182,7 +184,9 @@ func (t *Trie) AddWord(letters string, frequency int) {
 	}
 }
 
-/*func (t *Trie) CompactTrie() {
+// CompactTrie merges a node with one child in order to gain some space
+// The new node takes the old node's children as sons
+func (t *Trie) CompactTrie() {
 	if len(t.Children) == 1 {
 		for child := range t.Children {
 			t.Char = t.Char + child
@@ -193,8 +197,9 @@ func (t *Trie) AddWord(letters string, frequency int) {
 	for child := range t.Children {
 		t.Children[child].CompactTrie()
 	}
-}*/
+}
 
+// SaveTrie saves the Trie struct given a path. Uses the Gob serializer
 func SaveTrie(path string, t *Trie) error {
 	file, err := os.Create(path)
 	if err != nil {
@@ -205,6 +210,7 @@ func SaveTrie(path string, t *Trie) error {
 	return gob.NewEncoder(file).Encode(t)
 }
 
+// LoadTrie loads a trie given a path
 func LoadTrie(path string) (*Trie, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -217,6 +223,7 @@ func LoadTrie(path string) (*Trie, error) {
 	return decodedTrie, err
 }
 
+// CreateTrie creates the Trie structure given a text file's path
 func CreateTrie(path string) (*Trie, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -239,6 +246,7 @@ func CreateTrie(path string) (*Trie, error) {
 	return root, nil
 }
 
+// myMin returns the minimum value in a slice
 func myMin(args ...int) int {
 	v := math.MaxInt64
 	for _, arg := range args {

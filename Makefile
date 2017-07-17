@@ -12,6 +12,9 @@ app:
 compiler:
 	${GO} build -o ${CMP} src/${CMP}/main.go
 
+test:
+	cd src/tests && ${GO} test -bench=.
+
 
 .PHONY: clean
 clean:

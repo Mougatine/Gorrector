@@ -16,3 +16,5 @@
 ref/*
 *.txt
 dict.bin
+TextMiningApp
+TextMiningCompiler
