@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -23,19 +24,72 @@ type Word struct {
 	Distance  int
 }
 
+// Answer implements sort.Interface for []Word
+type Answer []Word
+
+// Len implements the Len() method of the sort interface
+func (ans Answer) Len() int {
+	return len(ans)
+}
+
+// Swap implements the Swap() method of the sort interface
+func (ans Answer) Swap(i, j int) {
+	ans[i], ans[j] = ans[j], ans[i]
+}
+
+// Less implements the Less() method of the sort interface
+// The comparison if based, first, on the distance (growing)
+// then on the frequency (descending) and on the lexicographic order
+func (ans Answer) Less(i, j int) bool {
+	left, right := ans[i], ans[j]
+
+	if left.Distance < right.Distance {
+		return true
+	} else if left.Distance == right.Distance {
+		if left.Frequency > right.Frequency {
+			return true
+		} else if left.Frequency == right.Frequency {
+			return lexicoOrder(left, right)
+		}
+	}
+
+	return false
+}
+
+// lexicoOrder returns true if a is smaller than b
+// using the lexicographic order
+func lexicoOrder(a, b Word) bool {
+	for i := 0; i < len(a.Content) && i < len(b.Content); i++ {
+		if a.Content[i] < b.Content[i] {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (t *Trie) SearchCloseWords(word string, distance int) []Word {
-	a := make([]Word, 1)
+	wordList := []Word{}
+	mdist := -1
 
 	fmt.Println("looking...", word, distance)
 	for _, child := range t.Children {
-		a = append(a, searchCloseWords(child, word, distance, 0, "")...)
+		if 1 < distance {
+			computeDistance(child, word, 1, distance, "", &wordList, "del")
+		}
+		if child.Char == string(word[0]) {
+			mdist = 0
+		} else {
+			mdist = 1
+		}
+		computeDistance(child, word[1:], mdist, distance, "", &wordList, "sub")
+		computeDistance(child, word, 1, distance, "", &wordList, "insert")
 	}
-	fmt.Println(a)
-	os.Exit(3)
-	return a
+
+	return wordList
 }
 
-func searchCloseWords(node *Trie, word string, maxDist int, curDist int, curr string) []Word {
+/*func searchCloseWords(node *Trie, word string, maxDist int, curDist int, curr string) []Word {
 	if word[0] != node.Char {
 		curDist++
 	}
@@ -78,55 +132,88 @@ func searchCloseWords(node *Trie, word string, maxDist int, curDist int, curr st
 	}
 
 	return ans
-}
+}*/
 
 /*
 Not working, from utard'slides.
 */
-func computeDistance(node *Trie, word string, curDistance int, maxDistance int) int {
+func computeDistance(node *Trie, word string, curDistance int, maxDistance int,
+	currWord string, wordList *[]Word, step string) int {
+
+	currWord = currWord + node.Char
+
+	//fmt.Println("Step: " + step + " | word: " + word + " | currentWord: " + currWord + " | dist: " + strconv.Itoa(curDistance))
 	if curDistance > maxDistance {
 		return curDistance
 	}
-	res, mdist := -1, -1
+	res, mdist, substitution, insertion := 10, -1, -1, -1
 
-	if len(node.Children) == 0 {
+	if node.IsWord {
 		res = len(word)
 	}
-	if curDistance+1 < maxDistance {
-		suppression := computeDistance(node, word[1:], curDistance+1, maxDistance)
+
+	if curDistance+1 <= maxDistance {
+		wordVal := word
+		if len(word) > 0 {
+			wordVal = word[1:]
+		}
+		suppression := computeDistance(node, wordVal, curDistance+1, maxDistance,
+			currWord, wordList, "del")
 		res = myMin(res, suppression)
 	}
 
 	for _, child := range node.Children {
+		//fmt.Println("Word value " + word)
+		//if len(word) > 0 {
+		//	fmt.Println("Child val: " + child.Char + " word val: " + string(word[0]))
+		//	}
+
 		if len(word) > 0 && child.Char == string(word[0]) {
 			mdist = 0
 		} else {
 			mdist = 1
 		}
 
-		substitution := computeDistance(child, word[1:], curDistance+mdist, maxDistance)
-		insertion := computeDistance(child, word, curDistance+1, maxDistance)
+		if len(word) > 0 && curDistance+mdist <= maxDistance {
+			substitution = computeDistance(child, word[1:], curDistance+mdist, maxDistance,
+				currWord, wordList, "sub")
+		}
+
+		if curDistance+1 <= maxDistance {
+			insertion = computeDistance(child, word, curDistance+1, maxDistance,
+				currWord, wordList, "insert")
+		}
 		res = myMin(res, substitution, insertion)
 	}
 
+	if len(word) == 0 && node.IsWord && res <= maxDistance {
+		newWord := Word{currWord, node.Frequency, curDistance}
+		//fmt.Println("Inserted word: " + newWord.Content)
+		*wordList = append(*wordList, newWord)
+	}
 	return res
 }
 
-func myMin(args ...int) int {
-	v := math.MaxInt64
-	for _, arg := range args {
-		if v > arg {
-			v = arg
+// PrettyPrint displays the sorted words in JSON format
+func PrettyPrint(words []Word) {
+	var orderedArray = Answer(words)
+	sort.Stable(orderedArray)
+	fmt.Print("[")
+	for i := range words {
+		fmt.Print("{\"word\":\"" + words[i].Content + "\",")
+		fmt.Print("\"freq\":" + strconv.Itoa(words[i].Frequency) + ",")
+		fmt.Print("\"distance\":" + strconv.Itoa(words[i].Distance) + "}")
+
+		if i != len(words)-1 {
+			fmt.Print(",")
 		}
 	}
 
-	return v
+	fmt.Print("]")
 }
 
-func CreateRootTrie() *Trie {
-	return &Trie{false, make(map[string]*Trie), "", 0}
-}
-
+// AddWord adds a word to the trie by creating a new node containing
+// a character and indicating if it is a word or not
 func (t *Trie) AddWord(letters string, frequency int) {
 	char := string(letters[0]) // Bug with root
 
@@ -136,46 +223,25 @@ func (t *Trie) AddWord(letters string, frequency int) {
 	}
 
 	if len(letters) == 1 {
-		t.Children[char].IsWord = true
 		t.Children[char].Frequency = frequency
+		t.Children[char].IsWord = true
 	} else {
 		t.Children[char].AddWord(letters[1:], frequency)
 	}
 }
 
-func (t *Trie) FetchAllWords(prefix string) []string {
-	words := make([]string, 1)
-	current := prefix + t.Char
-
-	if t.IsWord {
-		words = append(words, current)
-	}
-
-	for _, child := range t.Children {
-		words = append(words, child.FetchAllWords(current)...)
-	}
-
-	return words
-}
-
-func (t *Trie) CompactTrie() {
+/*func (t *Trie) CompactTrie() {
 	if len(t.Children) == 1 {
 		for child := range t.Children {
-			// Only looping once: one key, aka one child.
-			if len(t.Children[child].Children) == 1 {
-				for grandChild := range t.Children[child].Children {
-					// Again only looping once.
-					t.Char = t.Char + t.Children[child].Char
-					t.Children = map[string]*Trie{t.Char: t.Children[child].Children[grandChild]}
-				}
-			}
+			t.Char = t.Char + child
+			t.Children = t.Children[child].Children
 		}
 	}
 
 	for child := range t.Children {
 		t.Children[child].CompactTrie()
 	}
-}
+}*/
 
 func SaveTrie(path string, t *Trie) error {
 	file, err := os.Create(path)
@@ -221,58 +287,13 @@ func CreateTrie(path string) (*Trie, error) {
 	return root, nil
 }
 
-func DLDistance(str1 string, str2 string) int {
-	len1, len2 := len(str1), len(str2)
-	inf := len1 + len2
-	d := make([][]int, len1+2)
-	lastRow := make(map[string]int)
-
-	for i := range d {
-		d[i] = make([]int, len2+2)
-	}
-
-	// Fill array
-	for i := 0; i < len1+2; i++ {
-		d[i][0] = inf
-		d[i][1] = i - 1
-	}
-
-	for j := 0; j < len2+2; j++ {
-		d[0][j] = inf
-		d[1][j] = j - 1
-	}
-
-	for row := 2; row < len1+2; row++ {
-
-		// Current character in a
-		chA := str1[row-2]
-		lastMatchCol := 1
-
-		for col := 2; col < len2+2; col++ {
-			chB := str2[col-2]
-			lastMatchRow := lastRow[string(chB)]
-			if lastMatchRow == 0 {
-				lastMatchRow = 1
-			}
-			var cost = 0
-			if chA != chB {
-				cost = 1
-			}
-			substitution := d[row-1][col-1] + cost
-			addition := d[row][col-1] + 1
-			deletion := d[row-1][col] + 1
-			transposition := d[lastMatchRow-1][lastMatchCol-1] + (row - lastMatchRow - 1) + 1 + (col - lastMatchCol - 1)
-			minDist := sliceMin([]int{substitution, addition, deletion, transposition})
-			d[row][col] = minDist
-
-			if cost == 0 {
-				lastMatchCol = col
-			}
+func myMin(args ...int) int {
+	v := math.MaxInt64
+	for _, arg := range args {
+		if v > arg {
+			v = arg
 		}
-
-		lastRow[string(chA)] = row
 	}
 
-	return d[len1][len2]
-
+	return v
 }

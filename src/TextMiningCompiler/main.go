@@ -23,7 +23,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	root.CompactTrie()
+	//root.CompactTrie()
 	if err = trie.SaveTrie(dictPath, root); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
