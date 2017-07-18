@@ -60,29 +60,36 @@ func (ans Answer) Less(i, j int) bool {
 // using the lexicographic order
 func lexicoOrder(a, b Word) bool {
 	for i := 0; i < len(a.Content) && i < len(b.Content); i++ {
-		if a.Content[i] < b.Content[i] {
-			return true
+		if a.Content[i] != b.Content[i] {
+			return a.Content[i] < b.Content[i]
 		}
 	}
 
-	return false
+	return true
 }
 
+// SearchCloseWords returns a list of words which
+// Damereau-Levenstein distance from the word is at max equal to the distance parameter
 func (t *Trie) SearchCloseWords(word string, distance int) []Word {
 	wordList := []Word{}
 	mdist := -1
 
+	// Deletion
+	if 1 <= distance {
+		computeDistance(t, word[1:], 1, distance, "", &wordList, string(word[0]), "del", "del: "+strconv.Itoa(1))
+	}
+
 	for _, child := range t.Children {
-		if 1 < distance {
-			computeDistance(child, word, 1, distance, "", &wordList, "del")
-		}
+
 		if child.Char == string(word[0]) {
 			mdist = 0
 		} else {
 			mdist = 1
 		}
-		computeDistance(child, word[1:], mdist, distance, "", &wordList, "sub")
-		computeDistance(child, word, 1, distance, "", &wordList, "insert")
+		// Substitution
+		computeDistance(child, word[1:], mdist, distance, "", &wordList, string(word[0]), "sub", "sub: "+strconv.Itoa(mdist))
+		// Insertion
+		computeDistance(child, word, 1, distance, "", &wordList, "", "insert", "insert: "+strconv.Itoa(1))
 	}
 
 	return wordList
@@ -91,32 +98,26 @@ func (t *Trie) SearchCloseWords(word string, distance int) []Word {
 // computeDistance calculates the distance from the query word to the word
 // being constructed while visiting the trie
 func computeDistance(node *Trie, word string, curDistance int, maxDistance int,
-	currWord string, wordList *[]Word, step string) int {
+	currWord string, wordList *[]Word, deletedChar string, step string, path string) int {
 
-	currWord = currWord + node.Char
-
-	//fmt.Println("Step: " + step + " | word: " + word + " | currentWord: " + currWord + " | dist: " + strconv.Itoa(curDistance))
+	//fmt.Println("Step: " + step + " | word: " + word + " | node char " + node.Char + " | currentWord: " + currWord + " | dist: " + strconv.Itoa(curDistance))
 	if curDistance > maxDistance {
 		return curDistance
 	}
-	res, mdist, substitution, insertion := 10, -1, -1, -1
+	res, mdist, substitution, insertion, transposition := 10, -1, -1, -1, -1
 
 	if node.IsWord {
 		res = len(word)
 	}
 
-	if curDistance+1 < maxDistance {
-		wordVal := word
-		if len(word) > 0 {
-			wordVal = word[1:]
-		}
-		suppression := computeDistance(node, wordVal, curDistance+1, maxDistance,
-			currWord, wordList, "del")
+	if curDistance+1 <= maxDistance && len(word) > 0 {
+		suppression := computeDistance(node, word[1:], curDistance+1, maxDistance,
+			currWord, wordList, string(word[0]), "del", path+" del "+strconv.Itoa(curDistance+1))
 		res = myMin(res, suppression)
 	}
 
 	for _, child := range node.Children {
-		//fmt.Println("Word value " + word)
+		//fmt.Println("Word value "+ word)
 		//fmt.Println("Child val: " + child.Char)
 
 		if len(word) > 0 && child.Char == string(word[0]) {
@@ -128,20 +129,25 @@ func computeDistance(node *Trie, word string, curDistance int, maxDistance int,
 		// Prevents useless recursive calls
 		if len(word) > 0 && curDistance+mdist <= maxDistance {
 			substitution = computeDistance(child, word[1:], curDistance+mdist, maxDistance,
-				currWord, wordList, "sub")
+				currWord+node.Char, wordList, string(word[0]), "sub", path+" sub: "+strconv.Itoa(curDistance+mdist))
 		}
 
 		// Prevents useless recursive calls
-		if curDistance+1 <= maxDistance {
+		if curDistance+1 <= maxDistance && (len(word) > 0 && child.Char != string(word[0]) || len(word) == 0) {
 			insertion = computeDistance(child, word, curDistance+1, maxDistance,
-				currWord, wordList, "insert")
+				currWord+node.Char, wordList, "", "insert", path+" insert: "+strconv.Itoa(curDistance+1))
 		}
-		res = myMin(res, substitution, insertion)
+
+		/*if len(word) > 0 && len(currWord) > 0 && deletedChar == child.Char && currWord[len(currWord)-1] == word[0] {
+			transposition = computeDistance(child, word[1:], curDistance, maxDistance,
+				currWord+node.Char, wordList, string(word[0]), "trans", path+" trans: "+strconv.Itoa(curDistance))
+		}*/
+		res = myMin(res, substitution, insertion, transposition)
 	}
 
 	if len(word) == 0 && node.IsWord && res <= maxDistance {
-		newWord := Word{currWord, node.Frequency, curDistance}
-		//fmt.Println("Inserted word: " + newWord.Content)
+		newWord := Word{currWord + node.Char, node.Frequency, curDistance}
+		//fmt.Println("Path: " + path + " | Inserted word: " + newWord.Content)
 		*wordList = append(*wordList, newWord)
 	}
 	return res
