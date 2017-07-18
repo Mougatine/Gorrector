@@ -30,14 +30,12 @@ func main() {
 	for scanner.Scan() {
 		fields := strings.Fields(scanner.Text())
 		distance, word := fields[1], fields[2]
-
 		dist, err := strconv.Atoi(distance)
 		if err != nil {
 			continue
 		}
 
 		answers := dict.SearchCloseWords(word, dist)
-		fmt.Println(answers)
-		//fmt.Println(prettyPrint(answers))
+		trie.PrettyPrint(answers)
 	}
 }
