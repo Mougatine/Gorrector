@@ -3,6 +3,7 @@ package trie
 import (
 	"bufio"
 	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"math"
 	"os"
@@ -19,9 +20,9 @@ type Trie struct {
 }
 
 type Word struct {
-	Content   string
-	Frequency int
-	Distance  int
+	Content   string `json:"word"`
+	Frequency int    `json:"freq"`
+	Distance  int    `json:"distance"`
 }
 
 // Answer implements sort.Interface for []Word
@@ -157,18 +158,8 @@ func computeDistance(node *Trie, word string, curDistance int, maxDistance int,
 func PrettyPrint(words []Word) {
 	var orderedArray = Answer(words)
 	sort.Stable(orderedArray)
-	fmt.Print("[")
-	for i := range words {
-		fmt.Print("{\"word\":\"" + words[i].Content + "\",")
-		fmt.Print("\"freq\":" + strconv.Itoa(words[i].Frequency) + ",")
-		fmt.Print("\"distance\":" + strconv.Itoa(words[i].Distance) + "}")
-
-		if i != len(words)-1 {
-			fmt.Print(",")
-		}
-	}
-
-	fmt.Print("]\n")
+	jsonData, _ := json.Marshal(words)
+	fmt.Println(string(jsonData))
 }
 
 // AddWord adds a word to the trie by creating a new node containing
