@@ -19,6 +19,11 @@ type Trie struct {
 	Frequency int
 }
 
+type WordList struct {
+	words   []Word
+	wordMap map[string]bool
+}
+
 type Word struct {
 	Content   string `json:"word"`
 	Frequency int    `json:"freq"`
@@ -72,7 +77,7 @@ func lexicoOrder(a, b Word) bool {
 // SearchCloseWords returns a list of words which
 // Damereau-Levenstein distance from the word is at max equal to the distance parameter
 func (t *Trie) SearchCloseWords(word string, distance int) []Word {
-	wordList := []Word{}
+	wordList := WordList{[]Word{}, make(map[string]bool)}
 	mdist := -1
 
 	// Deletion
@@ -93,15 +98,16 @@ func (t *Trie) SearchCloseWords(word string, distance int) []Word {
 		computeDistance(child, word, 1, distance, "", &wordList, "", "insert", "insert: "+strconv.Itoa(1))
 	}
 
-	return wordList
+	return wordList.words
 }
 
 // computeDistance calculates the distance from the query word to the word
 // being constructed while visiting the trie
 func computeDistance(node *Trie, word string, curDistance int, maxDistance int,
-	currWord string, wordList *[]Word, deletedChar string, step string, path string) int {
+	currWord string, wordList *WordList, deletedChar string, step string, path string) int {
 
-	//fmt.Println("Step: " + step + " | word: " + word + " | node char " + node.Char + " | currentWord: " + currWord + " | dist: " + strconv.Itoa(curDistance))
+	//fmt.Println("Step: " + step + " | word: " + word + " | node char " + node.Char + " | currentWord: " + currWord + " | deleted: " + deletedChar + " | dist: " + strconv.Itoa(curDistance))
+
 	if curDistance > maxDistance {
 		return curDistance
 	}
@@ -118,8 +124,6 @@ func computeDistance(node *Trie, word string, curDistance int, maxDistance int,
 	}
 
 	for _, child := range node.Children {
-		//fmt.Println("Word value "+ word)
-		//fmt.Println("Child val: " + child.Char)
 
 		if len(word) > 0 && child.Char == string(word[0]) {
 			mdist = 0
@@ -133,23 +137,28 @@ func computeDistance(node *Trie, word string, curDistance int, maxDistance int,
 				currWord+node.Char, wordList, string(word[0]), "sub", path+" sub: "+strconv.Itoa(curDistance+mdist))
 		}
 
-		// Prevents useless recursive calls
+		// If a substitution with mdist = 0 is possible, don't try an insertion; Prevents duplication
 		if curDistance+1 <= maxDistance && (len(word) > 0 && child.Char != string(word[0]) || len(word) == 0) {
 			insertion = computeDistance(child, word, curDistance+1, maxDistance,
 				currWord+node.Char, wordList, "", "insert", path+" insert: "+strconv.Itoa(curDistance+1))
 		}
 
-		/*if len(word) > 0 && len(currWord) > 0 && deletedChar == child.Char && currWord[len(currWord)-1] == word[0] {
+		if len(word) > 0 && len(currWord) > 0 && node.Char == string(word[0]) && child.Char == deletedChar &&
+			node.Char != child.Char {
 			transposition = computeDistance(child, word[1:], curDistance, maxDistance,
 				currWord+node.Char, wordList, string(word[0]), "trans", path+" trans: "+strconv.Itoa(curDistance))
-		}*/
+		}
 		res = myMin(res, substitution, insertion, transposition)
 	}
 
 	if len(word) == 0 && node.IsWord && res <= maxDistance {
 		newWord := Word{currWord + node.Char, node.Frequency, curDistance}
 		//fmt.Println("Path: " + path + " | Inserted word: " + newWord.Content)
-		*wordList = append(*wordList, newWord)
+		_, prs := (*wordList).wordMap[newWord.Content]
+		if !prs {
+			(*wordList).words = append((*wordList).words, newWord)
+			(*wordList).wordMap[newWord.Content] = true
+		}
 	}
 	return res
 }
