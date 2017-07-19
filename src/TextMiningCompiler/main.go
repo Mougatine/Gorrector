@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"runtime"
 
 	"fmt"
 	"os"
@@ -10,6 +11,8 @@ import (
 )
 
 func main() {
+	runtime.GOMAXPROCS(1)
+
 	flag.Parse()
 	if len(flag.Args()) != 2 {
 		fmt.Println("Usage: ./TextMiningCompiler /path/to/word/freq.txt /path/to/output/dict.bin")

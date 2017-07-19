@@ -10,9 +10,12 @@ import (
 	"strconv"
 
 	trie "../trie"
+	"runtime"
 )
 
 func main() {
+	runtime.GOMAXPROCS(1)
+
 	flag.Parse()
 	if len(flag.Args()) != 1 {
 		fmt.Println("Usage: ./TextMiningApp /path/to/compiled/dict.bin")
