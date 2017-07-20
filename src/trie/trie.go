@@ -2,6 +2,7 @@ package trie
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
@@ -9,13 +10,13 @@ import (
 	"os"
 	"sort"
 	"strconv"
-	"strings"
 )
 
+// Trie struct Represents a trie, Frequency is the word frequency
+// Value is nil for the internal nodes,
 type Trie struct {
-	IsWord    bool
-	Children  map[string]*Trie
-	Char      string
+	Value     []byte
+	Children  map[byte]*Trie
 	Frequency int
 }
 
@@ -74,9 +75,34 @@ func lexicoOrder(a, b Word) bool {
 	return true
 }
 
+// ExactSearch is used to find a word when the distance is equal to zero
+func (t *Trie) ExactSearch(word string, distance int) []Word {
+
+	var res []Word
+	var match Word
+	var child *Trie
+	node := t
+
+	byteWord := []byte(word)
+
+	for _, val := range byteWord {
+		child, _ = node.Children[val]
+
+		if child == nil {
+			return []Word{}
+		}
+
+		node = child
+	}
+
+	match = Word{string(node.Value), node.Frequency, distance}
+
+	return append(res, match)
+}
+
 // SearchCloseWords returns a list of words which
 // Damereau-Levenstein distance from the word is at max equal to the distance parameter
-func (t *Trie) SearchCloseWords(word string, distance int) []Word {
+/*func (t *Trie) SearchCloseWords(word string, distance int) []Word {
 	wordList := WordList{[]Word{}, make(map[string]bool)}
 	mdist := -1
 
@@ -99,11 +125,11 @@ func (t *Trie) SearchCloseWords(word string, distance int) []Word {
 	}
 
 	return wordList.words
-}
+}*/
 
 // computeDistance calculates the distance from the query word to the word
 // being constructed while visiting the trie
-func computeDistance(node *Trie, word string, curDistance int, maxDistance int,
+/*func computeDistance(node *Trie, word string, curDistance int, maxDistance int,
 	currWord string, wordList *WordList, deletedChar string, step string, path string) int {
 
 	//fmt.Println("Step: " + step + " | word: " + word + " | node char " + node.Char + " | currentWord: " + currWord + " | deleted: " + deletedChar + " | dist: " + strconv.Itoa(curDistance))
@@ -161,7 +187,7 @@ func computeDistance(node *Trie, word string, curDistance int, maxDistance int,
 		}
 	}
 	return res
-}
+}*/
 
 // PrettyPrint displays the sorted words in JSON format
 func PrettyPrint(words []Word) {
@@ -171,27 +197,9 @@ func PrettyPrint(words []Word) {
 	fmt.Println(string(jsonData))
 }
 
-// AddWord adds a word to the trie by creating a new node containing
-// a character and indicating if it is a word or not
-func (t *Trie) AddWord(letters string, frequency int) {
-	char := string(letters[0]) // Bug with root
-
-	if _, ok := t.Children[char]; !ok {
-		// Creates new child.
-		t.Children[char] = &Trie{false, make(map[string]*Trie), char, 0}
-	}
-
-	if len(letters) == 1 {
-		t.Children[char].Frequency = frequency
-		t.Children[char].IsWord = true
-	} else {
-		t.Children[char].AddWord(letters[1:], frequency)
-	}
-}
-
 // CompactTrie merges a node with one child in order to gain some space
 // The new node takes the old node's children as sons
-func (t *Trie) CompactTrie() {
+/*func (t *Trie) CompactTrie() {
 	if len(t.Children) == 1 {
 		for child := range t.Children {
 			t.Char = t.Char + child
@@ -202,7 +210,7 @@ func (t *Trie) CompactTrie() {
 	for child := range t.Children {
 		t.Children[child].CompactTrie()
 	}
-}
+}*/
 
 // SaveTrie saves the Trie struct given a path. Uses the Gob serializer
 func SaveTrie(path string, t *Trie) error {
@@ -236,12 +244,12 @@ func CreateTrie(path string) (*Trie, error) {
 	}
 	defer file.Close()
 
-	root := &Trie{false, make(map[string]*Trie), "", 0}
+	root := &Trie{nil, make(map[byte]*Trie), 0}
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		line := strings.Fields(scanner.Text())
-		freq, err := strconv.Atoi(line[1])
+		line := bytes.Split(scanner.Bytes(), []byte("	"))
+		freq, err := strconv.Atoi(string(line[1]))
 		if err != nil {
 			continue
 		}
@@ -249,6 +257,30 @@ func CreateTrie(path string) (*Trie, error) {
 	}
 
 	return root, nil
+}
+
+// AddWord adds a word to the trie by creating a new node containing
+// a character and indicating if it is a word or not
+func (t *Trie) AddWord(word []byte, frequency int) {
+	node := t
+	var child *Trie
+	for _, val := range word {
+		child, _ = node.Children[val]
+
+		if child == nil {
+			child = &Trie{nil, nil, 0}
+			// Allocate if necessary
+			if node.Children == nil {
+				node.Children = make(map[byte]*Trie)
+			}
+			node.Children[val] = child
+		}
+
+		node = child
+	}
+
+	node.Frequency = frequency
+	node.Value = word
 }
 
 // myMin returns the minimum value in a slice

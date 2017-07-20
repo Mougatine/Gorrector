@@ -5,6 +5,7 @@ import (
 
 	"fmt"
 	"os"
+	"runtime/pprof"
 
 	trie "../trie"
 )
@@ -15,6 +16,15 @@ func main() {
 		fmt.Println("Usage: ./TextMiningCompiler /path/to/word/freq.txt /path/to/output/dict.bin")
 		os.Exit(134)
 	}
+
+	// Used for profiling
+	f, err := os.Create("dump.profile")
+	if err != nil {
+		panic(err)
+	}
+	pprof.StartCPUProfile(f)
+	defer pprof.StopCPUProfile()
+
 	wordsPath, dictPath := flag.Arg(0), flag.Arg(1)
 
 	root, err := trie.CreateTrie(wordsPath)

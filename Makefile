@@ -18,7 +18,6 @@ bench:
 test:
 	cd src/tests && ${GO} test
 
-
 .PHONY: clean
 clean:
 	${RM} ${APP}

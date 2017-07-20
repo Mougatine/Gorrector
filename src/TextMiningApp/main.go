@@ -5,9 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
-
 	"strconv"
+	"strings"
 
 	trie "../trie"
 )
@@ -35,7 +34,7 @@ func main() {
 			continue
 		}
 
-		answers := dict.SearchCloseWords(word, dist)
+		answers := dict.ExactSearch(word, dist)
 		trie.PrettyPrint(answers)
 	}
 }
