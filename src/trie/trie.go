@@ -17,7 +17,7 @@ import (
 type Trie struct {
 	Value     []byte
 	Children  map[byte]*Trie
-	Frequency int
+	Frequency uint32
 }
 
 type WordList struct {
@@ -27,8 +27,8 @@ type WordList struct {
 
 type Word struct {
 	Content   string `json:"word"`
-	Frequency int    `json:"freq"`
-	Distance  int    `json:"distance"`
+	Frequency uint32 `json:"freq"`
+	Distance  uint8  `json:"distance"`
 }
 
 // Answer implements sort.Interface for []Word
@@ -76,7 +76,7 @@ func lexicoOrder(a, b Word) bool {
 }
 
 // ExactSearch is used to find a word when the distance is equal to zero
-func (t *Trie) ExactSearch(word string, distance int) []Word {
+func (t *Trie) ExactSearch(word string, distance uint8) []Word {
 
 	var res []Word
 	var match Word
@@ -249,11 +249,11 @@ func CreateTrie(path string) (*Trie, error) {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := bytes.Split(scanner.Bytes(), []byte("	"))
-		freq, err := strconv.Atoi(string(line[1]))
+		freq, err := strconv.ParseUint(string(line[1]), 10, 32)
 		if err != nil {
-			continue
+			return nil, err
 		}
-		root.AddWord(line[0], freq)
+		root.AddWord(line[0], uint32(freq))
 	}
 
 	return root, nil
@@ -261,7 +261,7 @@ func CreateTrie(path string) (*Trie, error) {
 
 // AddWord adds a word to the trie by creating a new node containing
 // a character and indicating if it is a word or not
-func (t *Trie) AddWord(word []byte, frequency int) {
+func (t *Trie) AddWord(word []byte, frequency uint32) {
 	node := t
 	var child *Trie
 	for _, val := range word {

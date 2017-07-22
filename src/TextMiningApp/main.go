@@ -8,8 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	trie "../trie"
 	"runtime"
+
+	trie "../trie"
 )
 
 func main() {
@@ -32,12 +33,12 @@ func main() {
 	for scanner.Scan() {
 		fields := strings.Fields(scanner.Text())
 		distance, word := fields[1], fields[2]
-		dist, err := strconv.Atoi(distance)
+		dist, err := strconv.ParseUint(distance, 10, 8)
 		if err != nil {
-			continue
+			panic("Error")
 		}
 
-		answers := dict.ExactSearch(word, dist)
+		answers := dict.ExactSearch(word, uint8(dist))
 		trie.PrettyPrint(answers)
 	}
 }
