@@ -246,13 +246,16 @@ func CreateTrie(path string) (*Trie, error) {
 
 	root := &Trie{nil, make(map[byte]*Trie), 0}
 
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := bytes.Split(scanner.Bytes(), []byte("	"))
-		freq, err := strconv.ParseUint(string(line[1]), 10, 32)
+	reader := bufio.NewReader(file)
+	delim := []byte("	")
+	for {
+		raw, err := reader.ReadBytes('\n')
 		if err != nil {
-			return nil, err
+			break
 		}
+
+		line := bytes.Split(raw, delim)
+		freq, err := strconv.ParseUint(string(line[1]), 10, 32)
 		root.AddWord(line[0], uint32(freq))
 	}
 
