@@ -16,7 +16,7 @@ import (
 // Value is nil for the internal nodes,
 type Trie struct {
 	Value     []byte
-	Children  map[byte]Trie
+	Children  map[byte]*Trie
 	Frequency uint32
 }
 
@@ -247,7 +247,7 @@ func CreateTrie(path string) (*Trie, error) {
 		panic("Error while opening the source file")
 	}
 
-	root := &Trie{nil, make(map[byte]Trie), 0}
+	root := &Trie{nil, make(map[byte]*Trie), 0}
 	delim := []byte("	")
 
 	for !finished {
@@ -268,21 +268,20 @@ func CreateTrie(path string) (*Trie, error) {
 // AddWord adds a word to the trie by creating a new node containing
 // a character and indicating if it is a word or not
 func (t *Trie) AddWord(word []byte, frequency uint32) {
-	node := *t
-	var child Trie
+	node := t
 	for _, val := range word {
-		_, prs := node.Children[val]
+		child, prs := node.Children[val]
 
 		if !prs {
-			child = Trie{nil, nil, 0}
+			child = &Trie{nil, nil, 0}
 			// Allocate if necessary
 			if node.Children == nil {
-				node.Children = map[byte]Trie{}
+				node.Children = map[byte]*Trie{}
 			}
 			node.Children[val] = child
+		} else {
+			node = child
 		}
-
-		node = child
 	}
 
 	node.Frequency = frequency
@@ -292,7 +291,7 @@ func (t *Trie) AddWord(word []byte, frequency uint32) {
 func readLine(buf []byte) (int, []byte) {
 	var res []byte
 	var i int
-	sep := []byte("\n")[0]
+	sep := byte('\n')
 
 	for i = 0; i < len(buf); i++ {
 		if buf[i] == sep {
