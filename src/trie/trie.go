@@ -15,8 +15,8 @@ import (
 // Trie struct Represents a trie, Frequency is the word frequency
 // Value is nil for the internal nodes,
 type Trie struct {
-	Value     byte
-	Children  map[byte]*Trie
+	Value     []byte
+	Children  []*Trie
 	Frequency uint32
 }
 
@@ -76,7 +76,7 @@ func lexicoOrder(a, b Word) bool {
 }
 
 // ExactSearch is used to find a word when the distance is equal to zero
-func (t *Trie) ExactSearch(word string, distance uint8) []Word {
+/*func (t *Trie) ExactSearch(word string, distance uint8) []Word {
 
 	var res []Word
 	var match Word
@@ -98,7 +98,7 @@ func (t *Trie) ExactSearch(word string, distance uint8) []Word {
 	match = Word{string(node.Value), node.Frequency, distance}
 
 	return append(res, match)
-}
+}*/
 
 // SearchCloseWords returns a list of words which
 // Damereau-Levenstein distance from the word is at max equal to the distance parameter
@@ -247,7 +247,7 @@ func CreateTrie(path string) (*Trie, error) {
 		panic("Error while opening the source file")
 	}
 
-	root := &Trie{'0', make(map[byte]*Trie), 0}
+	root := &Trie{nil, nil, 0}
 	delim := []byte("	")
 
 	for !finished {
@@ -269,21 +269,49 @@ func CreateTrie(path string) (*Trie, error) {
 // a character and indicating if it is a word or not
 func (t *Trie) AddWord(word []byte, frequency uint32) {
 	node := t
-	for _, val := range word {
-		child, prs := node.Children[val]
+	hasInserted := false
 
-		if !prs {
-			child = &Trie{val, nil, 0}
-			// Allocate if necessary
-			if node.Children == nil {
-				node.Children = map[byte]*Trie{}
+	for {
+		for i, child := range node.Children {
+			hasInserted = false
+
+			prefix := getCommonPrefix(child.Value, word)
+			if prefix == 0 { // No prefix in common.
+				continue
 			}
-			node.Children[val] = child
+
+			child.Value = child.Value[prefix:]
+			newChild := &Trie{word[0:prefix], []*Trie{child}, 0}
+			node.Children[i] = newChild
+
+			node = newChild
+			word = word[prefix:]
+			hasInserted = true
+			break
 		}
-		node = child
+
+		if !hasInserted {
+			child := &Trie{word, nil, frequency}
+			node.Children = append(node.Children, child)
+		}
+	}
+}
+
+func getCommonPrefix(w1, w2 []byte) int {
+	var minLength int
+	if len(w1) > len(w2) {
+		minLength = len(w1)
+	} else {
+		minLength = len(w2)
 	}
 
-	node.Frequency = frequency
+	for i := 0; i < minLength; i++ {
+		if w1[i] != w2[i] {
+			return i
+		}
+	}
+
+	return minLength
 }
 
 func readLine(buf []byte) (int, []byte) {
