@@ -15,7 +15,7 @@ import (
 // Trie struct Represents a trie, Frequency is the word frequency
 // Value is nil for the internal nodes,
 type Trie struct {
-	Value     []byte
+	Value     byte
 	Children  map[byte]*Trie
 	Frequency uint32
 }
@@ -247,7 +247,7 @@ func CreateTrie(path string) (*Trie, error) {
 		panic("Error while opening the source file")
 	}
 
-	root := &Trie{nil, make(map[byte]*Trie), 0}
+	root := &Trie{'0', make(map[byte]*Trie), 0}
 	delim := []byte("	")
 
 	for !finished {
@@ -273,7 +273,7 @@ func (t *Trie) AddWord(word []byte, frequency uint32) {
 		child, prs := node.Children[val]
 
 		if !prs {
-			child = &Trie{nil, nil, 0}
+			child = &Trie{val, nil, 0}
 			// Allocate if necessary
 			if node.Children == nil {
 				node.Children = map[byte]*Trie{}
@@ -281,11 +281,9 @@ func (t *Trie) AddWord(word []byte, frequency uint32) {
 			node.Children[val] = child
 		}
 		node = child
-
 	}
 
 	node.Frequency = frequency
-	node.Value = word
 }
 
 func readLine(buf []byte) (int, []byte) {
