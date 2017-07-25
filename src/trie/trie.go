@@ -265,8 +265,11 @@ func CreateTrie(path string) (*Trie, error) {
 	return root, nil
 }
 
-// AddWord adds a word to the trie by creating a new node containing
-// a character and indicating if it is a word or not
+// AddWord adds a word to the trie by creating a new node.
+// A node has:
+// 	* `Value`: A suffix value, to get the whole word we have to sum the precedent value.
+//  * `Children`: A list of *Trie.
+//  * `Frequency`: A frequence value. If the frequence is equal to 0, the node doesn't contains a word.
 func (t *Trie) AddWord(word []byte, frequency uint32) {
 	node := t
 	hasInserted := false
@@ -280,6 +283,7 @@ func (t *Trie) AddWord(word []byte, frequency uint32) {
 				continue
 			}
 
+			// Insertion of an intermediary node called 'newChild'.
 			child.Value = child.Value[prefix:]
 			newChild := &Trie{word[0:prefix], []*Trie{child}, 0}
 			node.Children[i] = newChild
@@ -290,9 +294,11 @@ func (t *Trie) AddWord(word []byte, frequency uint32) {
 			break
 		}
 
+		// No prefix nodes have been found, thus we are creating a final node.
 		if !hasInserted {
 			child := &Trie{word, nil, frequency}
 			node.Children = append(node.Children, child)
+			break
 		}
 	}
 }
@@ -300,9 +306,9 @@ func (t *Trie) AddWord(word []byte, frequency uint32) {
 func getCommonPrefix(w1, w2 []byte) int {
 	var minLength int
 	if len(w1) > len(w2) {
-		minLength = len(w1)
-	} else {
 		minLength = len(w2)
+	} else {
+		minLength = len(w1)
 	}
 
 	for i := 0; i < minLength; i++ {
