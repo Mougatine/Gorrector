@@ -1,11 +1,11 @@
 package trie
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"os"
 	"sort"
@@ -238,25 +238,28 @@ func LoadTrie(path string) (*Trie, error) {
 
 // CreateTrie creates the Trie structure given a text file's path
 func CreateTrie(path string) (*Trie, error) {
-	file, err := os.Open(path)
+	var line [][]byte
+	finished := false
+
+	data, err := ioutil.ReadFile(path)
+
 	if err != nil {
-		return nil, err
+		panic("Error while opening the source file")
 	}
-	defer file.Close()
 
 	root := &Trie{nil, make(map[byte]*Trie), 0}
-
-	reader := bufio.NewReader(file)
 	delim := []byte("	")
-	for {
-		raw, err := reader.ReadBytes('\n')
-		if err != nil {
-			break
-		}
 
-		line := bytes.Split(raw, delim)
-		freq, err := strconv.ParseUint(string(line[1]), 10, 32)
-		root.AddWord(line[0], uint32(freq))
+	for !finished {
+		n, raw := readLine(data)
+		if n > 1 {
+			data = data[n:]
+			line = bytes.Split(raw, delim)
+			freq, _ := strconv.ParseUint(string(line[1]), 10, 32)
+			root.AddWord(line[0], uint32(freq))
+		} else {
+			finished = true
+		}
 	}
 
 	return root, nil
@@ -284,6 +287,21 @@ func (t *Trie) AddWord(word []byte, frequency uint32) {
 
 	node.Frequency = frequency
 	node.Value = word
+}
+
+func readLine(buf []byte) (int, []byte) {
+	var res []byte
+	var i int
+	sep := []byte("\n")[0]
+
+	for i = 0; i < len(buf); i++ {
+		if buf[i] != sep {
+			res = append(res, buf[i])
+		} else {
+			return i + 1, res
+		}
+	}
+	return i + 1, res
 }
 
 // myMin returns the minimum value in a slice
