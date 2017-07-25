@@ -279,9 +279,9 @@ func (t *Trie) AddWord(word []byte, frequency uint32) {
 				node.Children = map[byte]*Trie{}
 			}
 			node.Children[val] = child
-		} else {
-			node = child
 		}
+		node = child
+
 	}
 
 	node.Frequency = frequency
