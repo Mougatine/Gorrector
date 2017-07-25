@@ -16,7 +16,7 @@ import (
 // Value is nil for the internal nodes,
 type Trie struct {
 	Value     []byte
-	Children  map[byte]*Trie
+	Children  map[byte]Trie
 	Frequency uint32
 }
 
@@ -80,15 +80,15 @@ func (t *Trie) ExactSearch(word string, distance uint8) []Word {
 
 	var res []Word
 	var match Word
-	var child *Trie
-	node := t
+	var child Trie
+	node := *t
 
 	byteWord := []byte(word)
 
 	for _, val := range byteWord {
-		child, _ = node.Children[val]
+		_, prs := node.Children[val]
 
-		if child == nil {
+		if !prs {
 			return []Word{}
 		}
 
@@ -247,7 +247,7 @@ func CreateTrie(path string) (*Trie, error) {
 		panic("Error while opening the source file")
 	}
 
-	root := &Trie{nil, make(map[byte]*Trie), 0}
+	root := &Trie{nil, make(map[byte]Trie), 0}
 	delim := []byte("	")
 
 	for !finished {
@@ -268,16 +268,16 @@ func CreateTrie(path string) (*Trie, error) {
 // AddWord adds a word to the trie by creating a new node containing
 // a character and indicating if it is a word or not
 func (t *Trie) AddWord(word []byte, frequency uint32) {
-	node := t
-	var child *Trie
+	node := *t
+	var child Trie
 	for _, val := range word {
-		child, _ = node.Children[val]
+		_, prs := node.Children[val]
 
-		if child == nil {
-			child = &Trie{nil, nil, 0}
+		if !prs {
+			child = Trie{nil, nil, 0}
 			// Allocate if necessary
 			if node.Children == nil {
-				node.Children = make(map[byte]*Trie)
+				node.Children = map[byte]Trie{}
 			}
 			node.Children[val] = child
 		}
@@ -295,9 +295,8 @@ func readLine(buf []byte) (int, []byte) {
 	sep := []byte("\n")[0]
 
 	for i = 0; i < len(buf); i++ {
-		if buf[i] != sep {
-			res = append(res, buf[i])
-		} else {
+		if buf[i] == sep {
+			res = buf[:i]
 			return i + 1, res
 		}
 	}
